@@ -10,7 +10,9 @@ public class Routes {
     public static void addRoutes(Context context, VpnService.Builder builder, String name) {
         String[] routes;
         if(ROUTE_CHN.equals(name)) {
-            routes = context.getResources().getStringArray(R.array.simple_route);
+            routes = context.getResources().getStringArray(R.array.non_chinese_routes);
+        } else if (ROUTE_NO_LOCAL.equals(name)){
+            routes = context.getResources().getStringArray(R.array.all_routes_except_local);
         } else {
             routes = new String[]{"0.0.0.0/0"};
         }

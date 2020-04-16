@@ -3,9 +3,10 @@ package net.typeblog.socks.util;
 public class Constants
 {
     public static final String ROUTE_ALL = "all",
+            ROUTE_NO_LOCAL = "no_local",
             ROUTE_CHN = "chn";
 
-    private static final String INTENT_PREFIX = "SOCKS";
+    public static final String INTENT_PREFIX = "SOCKS";
     public static final String INTENT_NAME = INTENT_PREFIX + "NAME",
             INTENT_SERVER = INTENT_PREFIX + "SERV",
             INTENT_PORT = INTENT_PREFIX + "PORT",
@@ -18,7 +19,11 @@ public class Constants
             INTENT_APP_BYPASS = INTENT_PREFIX + "APPBYPASS",
             INTENT_APP_LIST = INTENT_PREFIX + "APPLIST",
             INTENT_IPV6_PROXY = INTENT_PREFIX + "IPV6",
-            INTENT_UDP_GW = INTENT_PREFIX + "UDPGW";
+            INTENT_UDP_GW = INTENT_PREFIX + "UDPGW",
+
+            INTENT_DISCONNECT = INTENT_PREFIX + "DISCONNECT",
+            INTENT_DISCONNECTED = INTENT_PREFIX + "DISCONNECTED",
+            INTENT_CONNECTED = INTENT_PREFIX + "CONNECTED";
 
     public static final String PREF = "profile",
             PREF_PROFILE = "profile",
@@ -37,5 +42,15 @@ public class Constants
             PREF_ADV_PER_APP = "adv_per_app",
             PREF_ADV_APP_BYPASS = "adv_app_bypass",
             PREF_ADV_APP_LIST = "adv_app_list",
-            PREF_ADV_AUTO_CONNECT = "adv_auto_connect";
+            PREF_ADV_AUTO_CONNECT = "adv_auto_connect",
+
+            PREF_CHISEL_CATEGORY = "chisel_category",
+            PREF_CHISEL_ENABLED = "chisel_enabled",
+            PREF_CHISEL_SERVER = "chisel_server",
+            PREF_CHISEL_ADDITIONAL_REMOTES = "chisel_additional_remotes",
+            PREF_CHISEL_USERNAME = "chisel_username",
+            PREF_CHISEL_PASSWORD = "chisel_password",
+            PREF_CHISEL_FINGERPRINT = "chisel_fingerprint",
+            PREF_CHISEL_MAX_RETRY_COUNT = "chisel_max_retry_count",
+            PREF_CHISEL_MAX_RETRY_INTERVAL = "chisel_max_retry_interval";
 }

@@ -1,10 +1,10 @@
-SocksDroid
+ChiselSocksDroid
 ==========
 
-## SOCKS5 client for Android 5.0+ using VpnService
+- This a fork of a fork of a fork of a fork of SocksDroid to add [chisel](https://github.com/jpillora/chisel) support.
+- All existing features of SocksDroid remain usable.
+- The clisel client always runs with port:socks and --keepalive 30s as this is intended to be used like a vpn, and I found it unusable without keepalive. Most of the other supported options for chisel client can be added from a basic UI.
+- Has a quick settings tile and a notification action for fasterrr access.
+- Has programming socks as its icon.
 
-This is an updated version of [SocksDroid by PeterCxy](https://github.com/PeterCxy/SocksDroid) to support modern Android devices.
-
-The project is in maintenance mode: no new features are planned, only bug fixes and compatibility upgrades.
-
-[<img src="https://play.google.com/intl/en_us/badges/images/generic/en_badge_web_generic.png" width="200">](https://play.google.com/store/apps/details?id=net.typeblog.socks)
+## [Download](https://bit.ly/chiselSocks)

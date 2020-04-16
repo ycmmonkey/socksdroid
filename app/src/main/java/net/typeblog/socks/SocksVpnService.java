@@ -4,8 +4,12 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.VpnService;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
@@ -15,8 +19,13 @@ import android.util.Log;
 import net.typeblog.socks.util.Routes;
 import net.typeblog.socks.util.Utility;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Queue;
 
 import static net.typeblog.socks.util.Constants.*;
 import static net.typeblog.socks.BuildConfig.DEBUG;
@@ -39,6 +48,22 @@ public class SocksVpnService extends VpnService {
     private ParcelFileDescriptor mInterface;
     private boolean mRunning = false;
     private final IBinder mBinder = new VpnBinder();
+    private Notification.Builder nb;
+    private Notification.BigTextStyle bigTextStyle;
+    private NotificationManager notificationManager;
+    private final int NOTIFICATION_ID = 1;
+    private final int NOTIFICATION_ERR_ID = 2;
+    private String NOTIFICATION_CHANNEL_ID = BuildConfig.APPLICATION_ID;
+    private String NOTIFICATION_CHANNEL_ERR_ID = BuildConfig.APPLICATION_ID+".err";
+    private final Queue<String> chiselLogQ = new LinkedList<>();
+
+    private BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(INTENT_DISCONNECT))
+                stopMe();
+        }
+    };
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -56,53 +81,55 @@ public class SocksVpnService extends VpnService {
         }
 
         final String name = intent.getStringExtra(INTENT_NAME);
-        final String server = intent.getStringExtra(INTENT_SERVER);
-        final int port = intent.getIntExtra(INTENT_PORT, 1080);
-        final String username = intent.getStringExtra(INTENT_USERNAME);
-        final String passwd = intent.getStringExtra(INTENT_PASSWORD);
-        final String route = intent.getStringExtra(INTENT_ROUTE);
-        final String dns = intent.getStringExtra(INTENT_DNS);
-        final int dnsPort = intent.getIntExtra(INTENT_DNS_PORT, 53);
-        final boolean perApp = intent.getBooleanExtra(INTENT_PER_APP, false);
-        final boolean appBypass = intent.getBooleanExtra(INTENT_APP_BYPASS, false);
-        final String[] appList = intent.getStringArrayExtra(INTENT_APP_LIST);
-        final boolean ipv6 = intent.getBooleanExtra(INTENT_IPV6_PROXY, false);
-        final String udpgw = intent.getStringExtra(INTENT_UDP_GW);
+        final String chiselServer = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_SERVER);
 
+        notificationManager = (NotificationManager)getSystemService(NOTIFICATION_SERVICE);
         // Notifications on Oreo and above need a channel
-        Notification.Builder builder;
         if (Build.VERSION.SDK_INT >= 26) {
-            String NOTIFICATION_CHANNEL_ID = "net.typeblog.socks";
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
-                    getString(R.string.channel_name), NotificationManager.IMPORTANCE_NONE);
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            Objects.requireNonNull(notificationManager).createNotificationChannel(channel);
-            builder = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID);
-        } else {
-            builder = new Notification.Builder(this);
-        }
+            NotificationChannel channel1 = new NotificationChannel(NOTIFICATION_CHANNEL_ID,
+                    getString(R.string.channel_connected), NotificationManager.IMPORTANCE_NONE);
+            NotificationChannel channel2 = new NotificationChannel(NOTIFICATION_CHANNEL_ERR_ID,
+                    getString(R.string.channel_err), NotificationManager.IMPORTANCE_HIGH);
+            Objects.requireNonNull(notificationManager).createNotificationChannel(channel1);
+            Objects.requireNonNull(notificationManager).createNotificationChannel(channel2);
+            nb = new Notification.Builder(this, NOTIFICATION_CHANNEL_ID);
+        } else
+            nb = new Notification.Builder(this);
+        bigTextStyle = new Notification.BigTextStyle().bigText(null);
 
+        PendingIntent dcPi = PendingIntent.getBroadcast(getApplicationContext(), 1,
+                new Intent(INTENT_DISCONNECT), PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification.Action dcAction = new Notification.Action(0, getString(R.string.disconnect), dcPi);
         // Create the notification
-        int NOTIFICATION_ID = 1;
+
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
                 new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
-        startForeground(NOTIFICATION_ID, builder
-                .setContentTitle(getString(R.string.notify_title))
-                .setContentText(String.format(getString(R.string.notify_msg), name))
-                .setPriority(Notification.PRIORITY_MIN)
-                .setSmallIcon(R.drawable.ic_vpn)
+        String title = getString(R.string.notify_msg_connecting, name);
+        nb.setContentTitle(title)
+                .setPriority(Notification.PRIORITY_LOW)
+                .setSmallIcon(R.drawable.vd_progress)
                 .setContentIntent(contentIntent)
-                .build());
+                .addAction(dcAction)
+                .setStyle(bigTextStyle
+                    .setBigContentTitle(title));
 
-        // Create an fd.
-        configure(name, route, perApp, appBypass, appList, ipv6);
+        startForeground(NOTIFICATION_ID, nb.build());
+        notificationManager.cancel(NOTIFICATION_ERR_ID);
 
-        if (DEBUG)
-            Log.d(TAG, "fd: " + mInterface.getFd());
+        if (chiselServer != null)
+            new ChiselTask().execute(intent); //connect socks after chisel
+        else {
+            startProxyIfNotRunning(intent);
+            nb.setContentTitle(getString(R.string.notify_msg_connected, name))
+                    .setSmallIcon(R.drawable.vd_socks_outline)
+                    .setPriority(Notification.PRIORITY_MIN);
+            bigTextStyle.setBigContentTitle(getString(R.string.notify_msg_connected, name));
+            notificationManager.notify(NOTIFICATION_ID, nb.build());
+        }
 
-        if (mInterface != null)
-            start(mInterface.getFd(), server, port, username, passwd, dns, dnsPort, ipv6, udpgw);
-
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(INTENT_DISCONNECT);
+        registerReceiver(bReceiver, filter);
         return START_STICKY;
     }
 
@@ -127,17 +154,27 @@ public class SocksVpnService extends VpnService {
     private void stopMe() {
         stopForeground(true);
 
+        try {
+            unregisterReceiver(bReceiver);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "bReceiver not registered");
+        }
+
+        Utility.killPidFile(getFilesDir() + "/chisel.pid");
         Utility.killPidFile(getFilesDir() + "/tun2socks.pid");
         Utility.killPidFile(getFilesDir() + "/pdnsd.pid");
 
+        getApplicationContext().sendBroadcast(new Intent(INTENT_DISCONNECTED));
+
         try {
-            System.jniclose(mInterface.getFd());
-            mInterface.close();
+            if (mInterface != null) {
+                System.jniclose(mInterface.getFd());
+                mInterface.close();
+            }
+            stopSelf();
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        stopSelf();
     }
 
     private void configure(String name, String route, boolean perApp, boolean bypass, String[] apps, boolean ipv6) {
@@ -164,7 +201,7 @@ public class SocksVpnService extends VpnService {
         if (!perApp) {
             // Just bypass myself
             try {
-                b.addDisallowedApplication("net.typeblog.socks");
+                b.addDisallowedApplication(BuildConfig.APPLICATION_ID);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -172,7 +209,7 @@ public class SocksVpnService extends VpnService {
             if (bypass) {
                 // First, bypass myself
                 try {
-                    b.addDisallowedApplication("net.typeblog.socks");
+                    b.addDisallowedApplication(BuildConfig.APPLICATION_ID);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -189,7 +226,7 @@ public class SocksVpnService extends VpnService {
                 }
             } else {
                 for (String p : apps) {
-                    if (TextUtils.isEmpty(p) || p.trim().equals("net.typeblog.socks")) {
+                    if (TextUtils.isEmpty(p) || p.trim().equals(BuildConfig.APPLICATION_ID)) {
                         continue;
                     }
 
@@ -252,6 +289,7 @@ public class SocksVpnService extends VpnService {
         while (i < 5) {
             if (System.sendfd(fd, getApplicationInfo().dataDir + "/sock_path") != -1) {
                 mRunning = true;
+                getApplicationContext().sendBroadcast(new Intent(INTENT_CONNECTED));
                 return;
             }
 
@@ -266,5 +304,127 @@ public class SocksVpnService extends VpnService {
 
         // Should not get here. Must be a failure.
         stopMe();
+    }
+
+    private void startProxyIfNotRunning(Intent intent){
+        if (mInterface == null) {
+            final String name = intent.getStringExtra(INTENT_NAME);
+            final String server = intent.getStringExtra(INTENT_SERVER);
+            final int port = intent.getIntExtra(INTENT_PORT, 1080);
+            final String username = intent.getStringExtra(INTENT_USERNAME);
+            final String passwd = intent.getStringExtra(INTENT_PASSWORD);
+            final String route = intent.getStringExtra(INTENT_ROUTE);
+            final String dns = intent.getStringExtra(INTENT_DNS);
+            final int dnsPort = intent.getIntExtra(INTENT_DNS_PORT, 53);
+            final boolean perApp = intent.getBooleanExtra(INTENT_PER_APP, false);
+            final boolean appBypass = intent.getBooleanExtra(INTENT_APP_BYPASS, false);
+            final String[] appList = intent.getStringArrayExtra(INTENT_APP_LIST);
+            final boolean ipv6 = intent.getBooleanExtra(INTENT_IPV6_PROXY, false);
+            final String udpgw = intent.getStringExtra(INTENT_UDP_GW);
+            // Create an fd.
+            configure(name, route, perApp, appBypass, appList, ipv6);
+
+            if (DEBUG)
+                Log.d(TAG, "fd: " + mInterface.getFd());
+
+            if (mInterface != null)
+                start(mInterface.getFd(), server, port, username, passwd, dns, dnsPort, ipv6, udpgw);
+        }
+    }
+
+    class ChiselTask extends AsyncTask<Intent, String, Boolean>{
+
+        @Override
+        protected Boolean doInBackground(Intent... intents) {
+            Intent intent = intents[0];
+            final String chiselServer = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_SERVER);
+            if (chiselServer == null)
+                return true;
+            final String name = intent.getStringExtra(INTENT_NAME);
+            final int port = intent.getIntExtra(INTENT_PORT, 1080);
+            final String chiselAdditionalRemotes = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_ADDITIONAL_REMOTES);
+            final String chiselUsername = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_USERNAME);
+            final String chiselPassword = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_PASSWORD);
+            final String chiselFingerprint = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_FINGERPRINT);
+            int chiselMRC = intent.getIntExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_COUNT, -1);
+            final int chiselMRI = intent.getIntExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_INTERVAL, -1);
+
+            boolean chiselConnected = false;
+            String chiselExecString = getApplicationInfo().nativeLibraryDir + "/libchisel.so client --pid --keepalive 30s ";
+            if (!chiselUsername.equals("") && !chiselPassword.equals(""))
+                chiselExecString += "--auth " + chiselUsername + ":" + chiselPassword + " ";
+            if (chiselMRC < 0)
+                chiselMRC = 5;
+            chiselExecString += "--max-retry-count " + chiselMRC + " ";
+            if (chiselMRI > 0)
+                chiselExecString += "--max-retry-interval " + chiselMRI + "s ";
+            if (!chiselFingerprint.equals(""))
+                chiselExecString += "--fingerprint " + chiselFingerprint + " ";
+
+            chiselExecString += chiselServer + " " + port + ":socks ";
+            if (!chiselAdditionalRemotes.equals(""))
+                chiselExecString += chiselAdditionalRemotes;
+            try {
+                Process p = Runtime.getRuntime().exec(chiselExecString, null, getFilesDir());
+                BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                String line;
+                while((line = br.readLine()) != null) {
+                    chiselLogQ.add(line);
+                    if (chiselLogQ.size()>4)
+                        chiselLogQ.remove();
+                    if (line.contains("Connected") && !chiselConnected) {
+                        chiselConnected = true;
+                        startProxyIfNotRunning(intent);
+
+                        nb.setContentTitle(getString(R.string.notify_msg_connected, name))
+                                .setSmallIcon(R.drawable.vd_socks_outline)
+                                .setPriority(Notification.PRIORITY_MIN);
+                        bigTextStyle.setBigContentTitle(getString(R.string.notify_msg_connected, name));
+                    } else if (line.contains("Retrying in") && chiselConnected) {
+                        chiselConnected = false;
+                        nb.setContentTitle(getString(R.string.notify_msg_connecting, name))
+                                .setSmallIcon(R.drawable.vd_progress)
+                                .setPriority(Notification.PRIORITY_LOW);
+                        bigTextStyle.setBigContentTitle(getString(R.string.notify_msg_connecting, name));
+                    }
+                    nb.setStyle(bigTextStyle.bigText(line));
+                    notificationManager.notify(NOTIFICATION_ID, nb.build());
+//                    if (chiselConnected)
+//                        break;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            if (!chiselConnected){
+                StringBuilder log = new StringBuilder();
+                for(String line : chiselLogQ)
+                    log.append(line).append("\n");
+                Notification.Builder nbErr;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    nbErr = new Notification.Builder(getApplicationContext(), NOTIFICATION_CHANNEL_ERR_ID);
+                } else
+                    nbErr = new Notification.Builder(getApplicationContext());
+                PendingIntent contentIntent = PendingIntent.getActivity(getApplicationContext(), 0,
+                        new Intent(getApplicationContext(), MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT);
+                nbErr.setContentTitle(getString(R.string.notify_msg_failed, name))
+                        .setPriority(Notification.PRIORITY_HIGH)
+                        .setSmallIcon(R.drawable.vd_exclaim)
+                        .setAutoCancel(true)
+                        .setContentIntent(contentIntent)
+                        .setStyle(bigTextStyle
+                                .setBigContentTitle(getString(R.string.notify_msg_failed, name))
+                                .bigText(log));
+
+                notificationManager.notify(NOTIFICATION_ERR_ID, nbErr.build());
+                stopMe();
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+        }
     }
 }

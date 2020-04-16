@@ -139,6 +139,72 @@ public class Profile {
         mPref.edit().putBoolean(key("auto"), auto).apply();
     }
 
+
+    public boolean getChiselEnabled() {
+        return mPref.getBoolean(key(PREF_CHISEL_ENABLED), false);
+    }
+
+    public void setChiselEnabled(boolean enabled) {
+        mPref.edit().putBoolean(key(PREF_CHISEL_ENABLED), enabled).apply();
+    }
+
+    public String getChiselAdditionalRemotes() {
+        return mPref.getString(key(PREF_CHISEL_ADDITIONAL_REMOTES), "");
+    }
+
+    public void setChiselAdditionalRemotes(String remotes) {
+        mPref.edit().putString(key(PREF_CHISEL_ADDITIONAL_REMOTES), remotes).apply();
+    }
+
+    public String getChiselServer() {
+        return mPref.getString(key(PREF_CHISEL_SERVER), "");
+    }
+
+    public void setChiselServer(String server) {
+        mPref.edit().putString(key(PREF_CHISEL_SERVER), server).apply();
+    }
+
+    public String getChiselUsername() {
+        return mPref.getString(key(PREF_CHISEL_USERNAME), "");
+    }
+
+    public void setChiselUsername(String username) {
+        mPref.edit().putString(key(PREF_CHISEL_USERNAME), username).apply();
+    }
+
+    public String getChiselPassword() {
+        return mPref.getString(key(PREF_CHISEL_PASSWORD), "");
+    }
+
+    public void setChiselPassword(String pass) {
+        mPref.edit().putString(key(PREF_CHISEL_PASSWORD), pass).apply();
+    }
+
+    public String getChiselFingerprint() {
+        return mPref.getString(key(PREF_CHISEL_FINGERPRINT), "");
+    }
+
+    public void setChiselFingerprint(String f) {
+        mPref.edit().putString(key(PREF_CHISEL_FINGERPRINT), f).apply();
+    }
+
+    public int getChiselMaxRetryCount() {
+        return mPref.getInt(key(PREF_CHISEL_MAX_RETRY_COUNT), 5);
+    }
+
+    public void setChiselMaxRetryCount(int count) {
+        mPref.edit().putInt(key(PREF_CHISEL_MAX_RETRY_COUNT), count).apply();
+    }
+
+    public int getChiselMaxRetryInterval() {
+        return mPref.getInt(key(PREF_CHISEL_MAX_RETRY_INTERVAL), -1);
+    }
+
+    public void setChiselMaxRetryInterval(int interval) {
+        mPref.edit().putInt(key(PREF_CHISEL_MAX_RETRY_INTERVAL), interval).apply();
+    }
+
+
     void delete() {
         mPref.edit()
                 .remove(key("server"))
@@ -156,6 +222,15 @@ public class Profile {
                 .remove(key("udp"))
                 .remove(key("udpgw"))
                 .remove(key("auto"))
+
+                .remove(key(PREF_CHISEL_ENABLED))
+                .remove(key(PREF_CHISEL_SERVER))
+                .remove(key(PREF_CHISEL_ADDITIONAL_REMOTES))
+                .remove(key(PREF_CHISEL_USERNAME))
+                .remove(key(PREF_CHISEL_PASSWORD))
+                .remove(key(PREF_CHISEL_FINGERPRINT))
+                .remove(key(PREF_CHISEL_MAX_RETRY_COUNT))
+                .remove(key(PREF_CHISEL_MAX_RETRY_INTERVAL))
                 .apply();
     }
 
