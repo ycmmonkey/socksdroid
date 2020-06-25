@@ -388,6 +388,7 @@ public class SocksVpnService extends VpnService {
                         bigTextStyle.setBigContentTitle(getString(R.string.notify_msg_connecting, name));
                     }
                     nb.setStyle(bigTextStyle.bigText(line));
+                    nb.setContentText(line);
                     notificationManager.notify(NOTIFICATION_ID, nb.build());
 //                    if (chiselConnected)
 //                        break;
@@ -411,6 +412,7 @@ public class SocksVpnService extends VpnService {
                         .setSmallIcon(R.drawable.vd_exclaim)
                         .setAutoCancel(true)
                         .setContentIntent(contentIntent)
+                        .setContentText(log)
                         .setStyle(bigTextStyle
                                 .setBigContentTitle(getString(R.string.notify_msg_failed, name))
                                 .bigText(log));
