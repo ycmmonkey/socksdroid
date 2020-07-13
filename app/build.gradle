@@ -6,7 +6,7 @@ android {
         applicationId "net.typeblog.socks"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 101
+        versionCode 102
         versionName ((int)(versionCode/100) + "." + (versionCode%100) +  " - " + new Date().format('dd.MMM.YY'))
         setProperty("archivesBaseName", "chiselsocksdroid")
     }
