@@ -102,7 +102,7 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
     private EditTextPreference mPrefServer, mPrefPort, mPrefUsername, mPrefPassword,
             mPrefDns, mPrefDnsPort, mPrefAppList, mPrefUDPGW,
             mPrefChiselServer, mPrefChiselAdditionalRemotes, mPrefChiselUsername, mPrefChiselPassword,
-            mPrefChiselFingerprint, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval;
+            mPrefChiselHeaders, mPrefChiselFingerprint, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval;
     private CheckBoxPreference mPrefUserpw, mPrefPerApp, mPrefAppBypass, mPrefIPv6, mPrefUDP, mPrefAuto;
     private SwitchPreference mPrefChiselEnabled;
     private PreferenceCategory mPrefChiselCategory;
@@ -260,6 +260,10 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
             mProfile.setChiselFingerprint(newValue.toString());
             resetTextN(mPrefChiselFingerprint, newValue);
             return true;
+        } else if (p == mPrefChiselHeaders) {
+            mProfile.setChiselHeaders(newValue.toString());
+            resetTextN(mPrefChiselHeaders, newValue);
+            return true;
         } else if (p == mPrefChiselMaxRetryCount) {
             if (TextUtils.isEmpty(newValue.toString()))
                 return false;
@@ -342,6 +346,7 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mPrefChiselUsername = findPreference(PREF_CHISEL_USERNAME);
         mPrefChiselPassword = findPreference(PREF_CHISEL_PASSWORD);
         mPrefChiselFingerprint = findPreference(PREF_CHISEL_FINGERPRINT);
+        mPrefChiselHeaders = findPreference(PREF_CHISEL_HEADERS);
         mPrefChiselMaxRetryCount = findPreference(PREF_CHISEL_MAX_RETRY_COUNT);
         mPrefChiselMaxRetryInterval = findPreference(PREF_CHISEL_MAX_RETRY_INTERVAL);
 
@@ -368,6 +373,7 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mPrefChiselUsername.setOnPreferenceChangeListener(this);
         mPrefChiselPassword.setOnPreferenceChangeListener(this);
         mPrefChiselFingerprint.setOnPreferenceChangeListener(this);
+        mPrefChiselHeaders.setOnPreferenceChangeListener(this);
         mPrefChiselMaxRetryCount.setOnPreferenceChangeListener(this);
         mPrefChiselMaxRetryInterval.setOnPreferenceChangeListener(this);
     }
@@ -447,11 +453,13 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mPrefChiselUsername.setText(String.valueOf(mProfile.getChiselUsername()));
         mPrefChiselPassword.setText(String.valueOf(mProfile.getChiselPassword()));
         mPrefChiselFingerprint.setText(String.valueOf(mProfile.getChiselFingerprint()));
+        mPrefChiselHeaders.setText(String.valueOf(mProfile.getChiselHeaders()));
         mPrefChiselMaxRetryCount.setText(String.valueOf(mProfile.getChiselMaxRetryCount()));
         mPrefChiselMaxRetryInterval.setText(String.valueOf(mProfile.getChiselMaxRetryInterval()));
 
         resetText(mPrefServer, mPrefPort, mPrefUsername, mPrefPassword, mPrefDns, mPrefDnsPort, mPrefUDPGW,
-                mPrefChiselServer, mPrefChiselAdditionalRemotes, mPrefChiselUsername, mPrefChiselPassword, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval);
+                mPrefChiselServer, mPrefChiselAdditionalRemotes, mPrefChiselUsername, mPrefChiselPassword,
+                mPrefChiselFingerprint, mPrefChiselHeaders, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval);
 
         mPrefAppList.setText(mProfile.getAppList());
     }

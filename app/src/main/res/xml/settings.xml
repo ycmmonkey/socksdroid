@@ -38,6 +38,11 @@
             android:singleLine="true"
             android:title="@string/chisel_fingerprint" />
 
+       <EditTextPreference
+            android:key="chisel_headers"
+            android:singleLine="false"
+            android:title="@string/chisel_headers"/>
+
         <EditTextPreference
             android:key="chisel_max_retry_count"
             android:singleLine="true"

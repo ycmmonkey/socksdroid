@@ -51,6 +51,7 @@ public class Constants
             PREF_CHISEL_USERNAME = "chisel_username",
             PREF_CHISEL_PASSWORD = "chisel_password",
             PREF_CHISEL_FINGERPRINT = "chisel_fingerprint",
+            PREF_CHISEL_HEADERS = "chisel_headers",
             PREF_CHISEL_MAX_RETRY_COUNT = "chisel_max_retry_count",
             PREF_CHISEL_MAX_RETRY_INTERVAL = "chisel_max_retry_interval";
 }

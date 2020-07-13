@@ -58,6 +58,7 @@
     <string name="chisel_username">Username</string>
     <string name="chisel_password">Password</string>
     <string name="chisel_fingerprint">Server fingerprint</string>
+    <string name="chisel_headers">Headers (Name: Value, one per line)</string>
     <string name="chisel_max_retry_count">Max retry count</string>
     <string name="chisel_max_retry_interval">Max retry interval (secs)</string>
 

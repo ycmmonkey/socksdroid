@@ -188,6 +188,14 @@ public class Profile {
         mPref.edit().putString(key(PREF_CHISEL_FINGERPRINT), f).apply();
     }
 
+    public String getChiselHeaders() {
+        return mPref.getString(key(PREF_CHISEL_HEADERS), "");
+    }
+
+    public void setChiselHeaders(String f) {
+        mPref.edit().putString(key(PREF_CHISEL_HEADERS), f).apply();
+    }
+
     public int getChiselMaxRetryCount() {
         return mPref.getInt(key(PREF_CHISEL_MAX_RETRY_COUNT), 5);
     }
@@ -229,6 +237,7 @@ public class Profile {
                 .remove(key(PREF_CHISEL_USERNAME))
                 .remove(key(PREF_CHISEL_PASSWORD))
                 .remove(key(PREF_CHISEL_FINGERPRINT))
+                .remove(key(PREF_CHISEL_HEADERS))
                 .remove(key(PREF_CHISEL_MAX_RETRY_COUNT))
                 .remove(key(PREF_CHISEL_MAX_RETRY_INTERVAL))
                 .apply();

@@ -22,6 +22,7 @@ import net.typeblog.socks.util.Utility;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Objects;
@@ -346,27 +347,52 @@ public class SocksVpnService extends VpnService {
             final String chiselUsername = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_USERNAME);
             final String chiselPassword = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_PASSWORD);
             final String chiselFingerprint = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_FINGERPRINT);
+            final String chiselHeaders = intent.getStringExtra(INTENT_PREFIX + PREF_CHISEL_HEADERS);
             int chiselMRC = intent.getIntExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_COUNT, -1);
             final int chiselMRI = intent.getIntExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_INTERVAL, -1);
 
             boolean chiselConnected = false;
-            String chiselExecString = getApplicationInfo().nativeLibraryDir + "/libchisel.so client --pid --keepalive 30s ";
-            if (!chiselUsername.equals("") && !chiselPassword.equals(""))
-                chiselExecString += "--auth " + chiselUsername + ":" + chiselPassword + " ";
-            if (chiselMRC < 0)
+            ArrayList<String> chiselCommands = new ArrayList<>();
+            chiselCommands.add(getApplicationInfo().nativeLibraryDir + "/libchisel.so");
+            chiselCommands.add("client");
+            chiselCommands.add("--pid");
+            chiselCommands.add("--keepalive");
+            chiselCommands.add("30s");
+            if (!chiselUsername.equals("") && !chiselPassword.equals("")) {
+                chiselCommands.add("--auth");
+                chiselCommands.add(chiselUsername + ":" + chiselPassword);
+            }
+            if (chiselMRC < 0) {
                 chiselMRC = 5;
-            chiselExecString += "--max-retry-count " + chiselMRC + " ";
-            if (chiselMRI > 0)
-                chiselExecString += "--max-retry-interval " + chiselMRI + "s ";
-            if (!chiselFingerprint.equals(""))
-                chiselExecString += "--fingerprint " + chiselFingerprint + " ";
+                chiselCommands.add("--max-retry-count");
+                chiselCommands.add("" + chiselMRC);
+            }
+            if (chiselMRI > 0) {
+                chiselCommands.add("--max-retry-interval");
+                chiselCommands.add(chiselMRI + "s");
+            }
+            if (!chiselFingerprint.equals("")) {
+                chiselCommands.add("--fingerprint");
+                chiselCommands.add(chiselFingerprint);
+            }
+            if (!chiselHeaders.equals("")) {
+                for (String line : chiselHeaders.split("\n")) {
+                    if (line.contains(":")) {
+                        chiselCommands.add("--header");
+                        chiselCommands.add(line);
+                    }
+                }
+            }
 
-            chiselExecString += chiselServer + " " + port + ":socks ";
+            chiselCommands.add(chiselServer);
+            chiselCommands.add(port + ":socks");
             if (!chiselAdditionalRemotes.equals(""))
-                chiselExecString += chiselAdditionalRemotes;
+                for (String remote : chiselHeaders.split(" "))
+                    chiselCommands.add(remote);
             try {
-                Process p = Runtime.getRuntime().exec(chiselExecString, null, getFilesDir());
-                BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                String[] arr = new String[chiselCommands.size()];
+                Process p = Runtime.getRuntime().exec(chiselCommands.toArray(arr), null, getFilesDir());
+                BufferedReader br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
                 String line;
                 while((line = br.readLine()) != null) {
                     chiselLogQ.add(line);

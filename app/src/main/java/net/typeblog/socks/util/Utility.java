@@ -128,6 +128,7 @@ public class Utility {
                 .putExtra(INTENT_PREFIX + PREF_CHISEL_USERNAME, profile.getChiselUsername())
                 .putExtra(INTENT_PREFIX + PREF_CHISEL_PASSWORD, profile.getChiselPassword())
                 .putExtra(INTENT_PREFIX + PREF_CHISEL_FINGERPRINT, profile.getChiselFingerprint())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_HEADERS, profile.getChiselHeaders())
                 .putExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_COUNT, profile.getChiselMaxRetryCount())
                 .putExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_INTERVAL, profile.getChiselMaxRetryInterval());
 
