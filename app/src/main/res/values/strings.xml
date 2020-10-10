@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">SocksDroid</string>
+    <string name="app_name">ChiselSocksDroid</string>
 
     <string name="profile">Profile</string>
     <string name="prof_default">Default</string>
@@ -23,6 +23,7 @@
     <string name="advanced">Advanced</string>
     <string name="adv_route">Route</string>
     <string name="adv_route_all">All (Default)</string>
+    <string name="adv_route_no_local">All except local IPs</string>
     <string name="adv_route_non_chn">Non-Chinese IPs</string>
     <string name="adv_dns">DNS Server</string>
     <string name="adv_dns_port">DNS Port (TCP)</string>
@@ -40,8 +41,25 @@
 
     <string name="err_add_prof">Failed to add profile %s</string>
     <string name="err_del_prof">Error deleting profile %s</string>
-    <string name="notify_title">SOCKS5 proxy activated</string>
-    <string name="notify_msg">Connected to %s</string>
-    <string name="channel_name">Proxy active</string>
+    <string name="notify_msg_connecting">Connecting to socks: %s</string>
+    <string name="notify_msg_connected">Connected to socks: %s</string>
+    <string name="notify_msg_failed">Failed to connect: %s</string>
+    <string name="channel_connected">Proxy active</string>
+    <string name="channel_err">Connection errors</string>
+
+    <string name="disconnect">Disconnect</string>
+    <string name="connect">Connect</string>
+    <string name="no_vpn_perm">VPN permission not granted</string>
+
+    <string name="chisel_socks">Chisel socks</string>
+    <string name="chisel_server">Server URL</string>
+    <string name="chisel_server_desc">The server should be running with --socks5</string>
+    <string name="chisel_additional_remotes">Remotes other than socks</string>
+    <string name="chisel_username">Username</string>
+    <string name="chisel_password">Password</string>
+    <string name="chisel_fingerprint">Server fingerprint</string>
+    <string name="chisel_headers">Headers (Name: Value, one per line)</string>
+    <string name="chisel_max_retry_count">Max retry count</string>
+    <string name="chisel_max_retry_interval">Max retry interval (secs)</string>
 
 </resources>

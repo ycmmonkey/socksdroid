@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="simple_route">
+    <string-array name="non_chinese_routes">
         <item>1.0.0.0/15</item>
         <item>1.2.0.0/16</item>
         <item>1.4.0.0/14</item>
@@ -1150,5 +1150,55 @@
         <item>223.224.0.0/12</item>
         <item>223.252.0.0/15</item>
         <item>223.255.0.0/16</item>
+    </string-array>
+
+<!--    https://gist.github.com/kylelemons/53690e0f756a8b97dbde97b603984073-->
+    <string-array name="all_routes_except_local">
+        <item>0.0.0.0/5</item>
+        <item>8.0.0.0/7</item>
+        <item>11.0.0.0/8</item>
+        <item>12.0.0.0/6</item>
+        <item>16.0.0.0/4</item>
+        <item>32.0.0.0/3</item>
+        <item>64.0.0.0/3</item>
+        <item>96.0.0.0/6</item>
+        <item>100.0.0.0/10</item>
+        <item>100.128.0.0/9</item>
+        <item>101.0.0.0/8</item>
+        <item>102.0.0.0/7</item>
+        <item>104.0.0.0/5</item>
+        <item>112.0.0.0/4</item>
+        <item>128.0.0.0/3</item>
+        <item>160.0.0.0/5</item>
+        <item>168.0.0.0/6</item>
+        <item>172.0.0.0/12</item>
+        <item>172.32.0.0/11</item>
+        <item>172.64.0.0/10</item>
+        <item>172.128.0.0/9</item>
+        <item>173.0.0.0/8</item>
+        <item>174.0.0.0/7</item>
+        <item>176.0.0.0/4</item>
+        <item>192.0.0.0/9</item>
+        <item>192.128.0.0/11</item>
+        <item>192.160.0.0/13</item>
+        <item>192.169.0.0/16</item>
+        <item>192.170.0.0/15</item>
+        <item>192.172.0.0/14</item>
+        <item>192.176.0.0/12</item>
+        <item>192.192.0.0/10</item>
+        <item>193.0.0.0/8</item>
+        <item>194.0.0.0/7</item>
+        <item>196.0.0.0/6</item>
+        <item>200.0.0.0/5</item>
+        <item>208.0.0.0/4</item>
+
+        <item>::/1</item>
+        <item>8000::/2</item>
+        <item>c000::/3</item>
+        <item>e000::/4</item>
+        <item>f000::/5</item>
+        <item>f800::/6</item>
+        <item>fe00::/9</item>
+        <item>fec0::/10</item>
     </string-array>
 </resources>

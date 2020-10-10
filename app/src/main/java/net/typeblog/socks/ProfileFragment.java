@@ -2,13 +2,17 @@ package net.typeblog.socks;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.VpnService;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -30,24 +34,11 @@ import androidx.preference.CheckBoxPreference;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.SwitchPreference;
 
-import static net.typeblog.socks.util.Constants.PREF_ADV_APP_BYPASS;
-import static net.typeblog.socks.util.Constants.PREF_ADV_APP_LIST;
-import static net.typeblog.socks.util.Constants.PREF_ADV_AUTO_CONNECT;
-import static net.typeblog.socks.util.Constants.PREF_ADV_DNS;
-import static net.typeblog.socks.util.Constants.PREF_ADV_DNS_PORT;
-import static net.typeblog.socks.util.Constants.PREF_ADV_PER_APP;
-import static net.typeblog.socks.util.Constants.PREF_ADV_ROUTE;
-import static net.typeblog.socks.util.Constants.PREF_AUTH_PASSWORD;
-import static net.typeblog.socks.util.Constants.PREF_AUTH_USERNAME;
-import static net.typeblog.socks.util.Constants.PREF_AUTH_USERPW;
-import static net.typeblog.socks.util.Constants.PREF_IPV6_PROXY;
-import static net.typeblog.socks.util.Constants.PREF_PROFILE;
-import static net.typeblog.socks.util.Constants.PREF_SERVER_IP;
-import static net.typeblog.socks.util.Constants.PREF_SERVER_PORT;
-import static net.typeblog.socks.util.Constants.PREF_UDP_GW;
-import static net.typeblog.socks.util.Constants.PREF_UDP_PROXY;
+import static net.typeblog.socks.util.Constants.*;
 
 public class ProfileFragment extends PreferenceFragmentCompat implements Preference.OnPreferenceClickListener, Preference.OnPreferenceChangeListener,
         CompoundButton.OnCheckedChangeListener {
@@ -78,6 +69,26 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
             mBinder = null;
         }
     };
+
+    private BroadcastReceiver bReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(INTENT_DISCONNECTED)){
+                mSwitch.setOnCheckedChangeListener(null);
+                mRunning = false;
+                mStarting = false;
+                mStopping = false;
+                updateState();
+            } else if (intent.getAction().equals(INTENT_CONNECTED)){
+                mSwitch.setOnCheckedChangeListener(null);
+                mRunning = true;
+                mStarting = false;
+                mStopping = false;
+                updateState();
+            }
+        }
+    };
+
     private final Runnable mStateRunnable = new Runnable() {
         @Override
         public void run() {
@@ -89,9 +100,12 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
 
     private ListPreference mPrefProfile, mPrefRoutes;
     private EditTextPreference mPrefServer, mPrefPort, mPrefUsername, mPrefPassword,
-            mPrefDns, mPrefDnsPort, mPrefAppList, mPrefUDPGW;
+            mPrefDns, mPrefDnsPort, mPrefAppList, mPrefUDPGW,
+            mPrefChiselServer, mPrefChiselAdditionalRemotes, mPrefChiselUsername, mPrefChiselPassword,
+            mPrefChiselHeaders, mPrefChiselFingerprint, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval;
     private CheckBoxPreference mPrefUserpw, mPrefPerApp, mPrefAppBypass, mPrefIPv6, mPrefUDP, mPrefAuto;
-
+    private SwitchPreference mPrefChiselEnabled;
+    private PreferenceCategory mPrefChiselCategory;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +114,18 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mManager = new ProfileManager(getActivity().getApplicationContext());
         initPreferences();
         reload();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (mSwitch != null)
+            checkState();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(INTENT_DISCONNECTED);
+        filter.addAction(INTENT_CONNECTED);
+        getContext().registerReceiver(bReceiver, filter);
     }
 
     @Override
@@ -116,7 +142,6 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
 
         mSwitch = (SwitchCompat) s.getActionView();
         mSwitch.setOnCheckedChangeListener(this);
-        mSwitch.postDelayed(mStateRunnable, 1000);
         checkState();
     }
 
@@ -208,8 +233,72 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         } else if (p == mPrefAuto) {
             mProfile.setAutoConnect(Boolean.parseBoolean(newValue.toString()));
             return true;
+        }
+
+        else if (p == mPrefChiselEnabled) {
+            boolean enabled = (Boolean)newValue;
+            mProfile.setChiselEnabled(enabled);
+            toggleChiselSettings(enabled);
+            return true;
+        } else if (p == mPrefChiselServer) {
+            mProfile.setChiselServer(newValue.toString());
+            resetTextN(mPrefChiselServer, newValue);
+            return true;
+        } else if (p == mPrefChiselAdditionalRemotes) {
+            mProfile.setChiselAdditionalRemotes(newValue.toString());
+            resetTextN(mPrefChiselAdditionalRemotes, newValue);
+            return true;
+        } else if (p == mPrefChiselUsername) {
+            mProfile.setChiselUsername(newValue.toString());
+            resetTextN(mPrefChiselUsername, newValue);
+            return true;
+        } else if (p == mPrefChiselPassword) {
+            mProfile.setChiselPassword(newValue.toString());
+            resetTextN(mPrefChiselPassword, newValue);
+            return true;
+        } else if (p == mPrefChiselFingerprint) {
+            mProfile.setChiselFingerprint(newValue.toString());
+            resetTextN(mPrefChiselFingerprint, newValue);
+            return true;
+        } else if (p == mPrefChiselHeaders) {
+            mProfile.setChiselHeaders(newValue.toString());
+            resetTextN(mPrefChiselHeaders, newValue);
+            return true;
+        } else if (p == mPrefChiselMaxRetryCount) {
+            if (TextUtils.isEmpty(newValue.toString()))
+                return false;
+
+            mProfile.setChiselMaxRetryCount(Integer.parseInt(newValue.toString()));
+            resetTextN(mPrefChiselMaxRetryCount, newValue);
+            return true;
+        } else if (p == mPrefChiselMaxRetryInterval) {
+            if (TextUtils.isEmpty(newValue.toString()))
+                return false;
+
+            mProfile.setChiselMaxRetryInterval(Integer.parseInt(newValue.toString()));
+            resetTextN(mPrefChiselMaxRetryInterval, newValue);
+            return true;
         } else {
             return false;
+        }
+    }
+
+    private void toggleChiselSettings(boolean enabled){
+        if (enabled){
+            mPrefChiselCategory.setVisible(true);
+            mPrefUserpw.setChecked(false);
+            mPrefUserpw.setEnabled(false);
+            mPrefUDP.setChecked(false);
+            mPrefUDP.setEnabled(false);
+            mPrefServer.setText("127.0.0.1");
+            mPrefServer.setEnabled(false);
+            if (mPrefPort.getText().isEmpty())
+                mPrefPort.setText("1080");
+        } else {
+            mPrefChiselCategory.setVisible(false);
+            mPrefUserpw.setEnabled(true);
+            mPrefUDP.setEnabled(true);
+            mPrefServer.setEnabled(true);
         }
     }
 
@@ -250,6 +339,17 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mPrefUDPGW = findPreference(PREF_UDP_GW);
         mPrefAuto = findPreference(PREF_ADV_AUTO_CONNECT);
 
+        mPrefChiselCategory = findPreference(PREF_CHISEL_CATEGORY);
+        mPrefChiselEnabled = findPreference(PREF_CHISEL_ENABLED);
+        mPrefChiselServer = findPreference(PREF_CHISEL_SERVER);
+        mPrefChiselAdditionalRemotes = findPreference(PREF_CHISEL_ADDITIONAL_REMOTES);
+        mPrefChiselUsername = findPreference(PREF_CHISEL_USERNAME);
+        mPrefChiselPassword = findPreference(PREF_CHISEL_PASSWORD);
+        mPrefChiselFingerprint = findPreference(PREF_CHISEL_FINGERPRINT);
+        mPrefChiselHeaders = findPreference(PREF_CHISEL_HEADERS);
+        mPrefChiselMaxRetryCount = findPreference(PREF_CHISEL_MAX_RETRY_COUNT);
+        mPrefChiselMaxRetryInterval = findPreference(PREF_CHISEL_MAX_RETRY_INTERVAL);
+
         mPrefProfile.setOnPreferenceChangeListener(this);
         mPrefServer.setOnPreferenceChangeListener(this);
         mPrefPort.setOnPreferenceChangeListener(this);
@@ -266,6 +366,16 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
         mPrefUDP.setOnPreferenceChangeListener(this);
         mPrefUDPGW.setOnPreferenceChangeListener(this);
         mPrefAuto.setOnPreferenceChangeListener(this);
+
+        mPrefChiselEnabled.setOnPreferenceChangeListener(this);
+        mPrefChiselServer.setOnPreferenceChangeListener(this);
+        mPrefChiselAdditionalRemotes.setOnPreferenceChangeListener(this);
+        mPrefChiselUsername.setOnPreferenceChangeListener(this);
+        mPrefChiselPassword.setOnPreferenceChangeListener(this);
+        mPrefChiselFingerprint.setOnPreferenceChangeListener(this);
+        mPrefChiselHeaders.setOnPreferenceChangeListener(this);
+        mPrefChiselMaxRetryCount.setOnPreferenceChangeListener(this);
+        mPrefChiselMaxRetryInterval.setOnPreferenceChangeListener(this);
     }
 
     private void reload() {
@@ -311,7 +421,45 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
             }
         });
         mPrefUDPGW.setText(mProfile.getUDPGW());
-        resetText(mPrefServer, mPrefPort, mPrefUsername, mPrefPassword, mPrefDns, mPrefDnsPort, mPrefUDPGW);
+
+        mPrefChiselPassword.setOnBindEditTextListener(new EditTextPreference.OnBindEditTextListener() {
+            @Override
+            public void onBindEditText(@NonNull EditText editText) {
+                editText.setInputType(InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+        });
+
+        mPrefChiselMaxRetryCount.setOnBindEditTextListener(new EditTextPreference.OnBindEditTextListener() {
+            @Override
+            public void onBindEditText(@NonNull EditText editText) {
+                editText.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED);
+            }
+        });
+
+        mPrefChiselMaxRetryInterval.setOnBindEditTextListener(new EditTextPreference.OnBindEditTextListener() {
+            @Override
+            public void onBindEditText(@NonNull EditText editText) {
+                editText.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED);
+            }
+        });
+
+        mPrefChiselEnabled.setOnPreferenceChangeListener(null);
+        mPrefChiselEnabled.setChecked(mProfile.getChiselEnabled());
+        toggleChiselSettings(mProfile.getChiselEnabled());
+        mPrefChiselEnabled.setOnPreferenceChangeListener(this);
+
+        mPrefChiselServer.setText(String.valueOf(mProfile.getChiselServer()));
+        mPrefChiselAdditionalRemotes.setText(String.valueOf(mProfile.getChiselAdditionalRemotes()));
+        mPrefChiselUsername.setText(String.valueOf(mProfile.getChiselUsername()));
+        mPrefChiselPassword.setText(String.valueOf(mProfile.getChiselPassword()));
+        mPrefChiselFingerprint.setText(String.valueOf(mProfile.getChiselFingerprint()));
+        mPrefChiselHeaders.setText(String.valueOf(mProfile.getChiselHeaders()));
+        mPrefChiselMaxRetryCount.setText(String.valueOf(mProfile.getChiselMaxRetryCount()));
+        mPrefChiselMaxRetryInterval.setText(String.valueOf(mProfile.getChiselMaxRetryInterval()));
+
+        resetText(mPrefServer, mPrefPort, mPrefUsername, mPrefPassword, mPrefDns, mPrefDnsPort, mPrefUDPGW,
+                mPrefChiselServer, mPrefChiselAdditionalRemotes, mPrefChiselUsername, mPrefChiselPassword,
+                mPrefChiselFingerprint, mPrefChiselHeaders, mPrefChiselMaxRetryCount, mPrefChiselMaxRetryInterval);
 
         mPrefAppList.setText(mProfile.getAppList());
     }
@@ -327,10 +475,10 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
 
     private void resetText(EditTextPreference... pref) {
         for (EditTextPreference p : pref) {
-            if (!p.getKey().equals("auth_password")) {
+            if (!p.getKey().equals("auth_password") && !p.getKey().equals(PREF_CHISEL_PASSWORD)) {
                 p.setSummary(p.getText());
             } else {
-                if (p.getText().length() > 0)
+                if (p.getText() != null && p.getText().length() > 0)
                     p.setSummary(String.format(Locale.US,
                             String.format(Locale.US, "%%0%dd", p.getText().length()), 0)
                             .replace("0", "*"));
@@ -341,7 +489,7 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
     }
 
     private void resetTextN(EditTextPreference pref, Object newValue) {
-        if (!pref.getKey().equals("auth_password")) {
+        if (!pref.getKey().equals("auth_password") && !pref.getKey().equals(PREF_CHISEL_PASSWORD)) {
             pref.setSummary(newValue.toString());
         } else {
             String text = newValue.toString();
@@ -423,6 +571,14 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
 
         if (mBinder == null) {
             getActivity().bindService(new Intent(getActivity(), SocksVpnService.class), mConnection, 0);
+            mSwitch.postDelayed(mStateRunnable, 1000);
+        } else {
+            try {
+                if (mBinder.isRunning())
+                    updateState();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -481,5 +637,14 @@ public class ProfileFragment extends PreferenceFragmentCompat implements Prefere
 
         getActivity().unbindService(mConnection);
         checkState();
+    }
+
+    @Override
+    public void onStop() {
+        try {
+            getContext().unregisterReceiver(bReceiver);
+        } catch (IllegalArgumentException e) {
+        }
+        super.onStop();
     }
 }

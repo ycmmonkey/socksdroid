@@ -122,6 +122,18 @@ public class Utility {
                 .putExtra(INTENT_PER_APP, profile.isPerApp())
                 .putExtra(INTENT_IPV6_PROXY, profile.hasIPv6());
 
+        if (profile.getChiselEnabled() && !profile.getChiselServer().equals(""))
+            i.putExtra(INTENT_PREFIX + PREF_CHISEL_SERVER, profile.getChiselServer())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_ADDITIONAL_REMOTES, profile.getChiselAdditionalRemotes())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_USERNAME, profile.getChiselUsername())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_PASSWORD, profile.getChiselPassword())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_FINGERPRINT, profile.getChiselFingerprint())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_HEADERS, profile.getChiselHeaders())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_COUNT, profile.getChiselMaxRetryCount())
+                .putExtra(INTENT_PREFIX + PREF_CHISEL_MAX_RETRY_INTERVAL, profile.getChiselMaxRetryInterval());
+
+
+
         if (profile.isUserPw()) {
             i.putExtra(INTENT_USERNAME, profile.getUsername())
                     .putExtra(INTENT_PASSWORD, profile.getPassword());

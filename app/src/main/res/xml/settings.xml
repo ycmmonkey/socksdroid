@@ -5,6 +5,56 @@
         android:key="profile"
         android:title="@string/profile" />
 
+    <SwitchPreference
+        android:key="chisel_enabled"
+        android:title="@string/chisel_socks" />
+
+    <PreferenceCategory
+        android:key="chisel_category"
+        android:title="@string/chisel_server_desc"
+        android:dependency="chisel_enabled">
+
+        <EditTextPreference
+            android:key="chisel_server"
+            android:title="@string/chisel_server"/>
+
+        <EditTextPreference
+            android:key="chisel_additional_remotes"
+            android:singleLine="true"
+            android:title="@string/chisel_additional_remotes" />
+
+        <EditTextPreference
+            android:key="chisel_username"
+            android:singleLine="true"
+            android:title="@string/chisel_username" />
+
+       <EditTextPreference
+            android:key="chisel_password"
+            android:singleLine="true"
+            android:title="@string/chisel_password" />
+
+       <EditTextPreference
+            android:key="chisel_fingerprint"
+            android:singleLine="true"
+            android:title="@string/chisel_fingerprint" />
+
+       <EditTextPreference
+            android:key="chisel_headers"
+            android:singleLine="false"
+            android:title="@string/chisel_headers"/>
+
+        <EditTextPreference
+            android:key="chisel_max_retry_count"
+            android:singleLine="true"
+            android:title="@string/chisel_max_retry_count" />
+
+        <EditTextPreference
+            android:key="chisel_max_retry_interval"
+            android:singleLine="true"
+            android:title="@string/chisel_max_retry_interval" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/connection">
 
         <EditTextPreference
